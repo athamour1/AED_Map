@@ -3,7 +3,7 @@ name: Deploy Quasar PWA to GitHub Pages
 on:
   push:
     branches:
-      - main  # Set this to the branch you want to deploy from
+      - master  # Changed to master to match the repository's branch
 
 jobs:
   build-and-deploy:
