@@ -146,6 +146,31 @@ export default defineConfig((/* ctx */) => {
       extendGenerateSWOptions (cfg) {
         cfg.skipWaiting = true;
         cfg.clientsClaim = true;
+        // Add runtime caching for offline support
+        cfg.runtimeCaching = [
+          {
+            urlPattern: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'osm-tiles',
+              expiration: {
+                maxEntries: 500,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com)\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts',
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
+              },
+            },
+          }
+        ];
       },
       // extendInjectManifestOptions (cfg) {}
     },
