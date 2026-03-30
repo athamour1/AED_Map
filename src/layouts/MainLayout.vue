@@ -1,22 +1,28 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
+    <q-header elevated class="bg-primary text-white">
       <q-toolbar>
-        <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
+        <q-toolbar-title class="row items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" class="q-mr-sm" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
+            <path fill="white" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            <path fill="#00A550" d="M11.5 17.5l4-7h-3V4.5L8 11.5h3v6z"/>
+          </svg>
+          <span class="text-weight-bold">AED Locator</span>
+        </q-toolbar-title>
 
-        <q-toolbar-title> Quasar App </q-toolbar-title>
-
-        <div>Quasar v{{ $q.version }}</div>
+        <!-- Install PWA Button -->
+        <q-btn
+          v-if="deferredPrompt"
+          flat
+          dense
+          icon="install_mobile"
+          label="Install"
+          class="q-px-sm text-weight-bold q-ml-sm"
+          style="background-color: rgba(255,255,255,0.2);"
+          @click="installPWA"
+        />
       </q-toolbar>
     </q-header>
-
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
-      <q-list>
-        <q-item-label header> Essential Links </q-item-label>
-
-        <EssentialLink v-for="link in linksList" :key="link.title" v-bind="link" />
-      </q-list>
-    </q-drawer>
 
     <q-page-container>
       <router-view />
@@ -25,57 +31,36 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import EssentialLink from 'components/EssentialLink.vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 
-const linksList = [
-  {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev',
-  },
-  {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework',
-  },
-  {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev',
-  },
-  {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev',
-  },
-  {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev',
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev',
-  },
-  {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev',
-  },
-]
+const deferredPrompt = ref(null);
 
-const leftDrawerOpen = ref(false)
+const handleInstallPrompt = (e) => {
+  // Prevent Chrome 67 and earlier from automatically showing the prompt
+  e.preventDefault();
+  // Stash the event so it can be triggered later
+  deferredPrompt.value = e;
+};
 
-function toggleLeftDrawer() {
-  leftDrawerOpen.value = !leftDrawerOpen.value
+onMounted(() => {
+  window.addEventListener('beforeinstallprompt', handleInstallPrompt);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeinstallprompt', handleInstallPrompt);
+});
+
+async function installPWA() {
+  if (!deferredPrompt.value) return;
+
+  // Show the prompt
+  deferredPrompt.value.prompt();
+
+  // Wait for the user to respond
+  const { outcome } = await deferredPrompt.value.userChoice;
+  
+  if (outcome === 'accepted') {
+    deferredPrompt.value = null; // Hide the button once installed
+  }
 }
 </script>
