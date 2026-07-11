@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { LocationsModule } from './locations/locations.module';
+import { DevicesModule } from './devices/devices.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { validateEnv } from './config/env.validation';
@@ -13,6 +14,7 @@ import { validateEnv } from './config/env.validation';
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     PrismaModule,
     LocationsModule,
+    DevicesModule,
     AuthModule,
     UsersModule,
   ],
