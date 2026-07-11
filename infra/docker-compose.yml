@@ -1,0 +1,100 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    image: ${API_IMAGE:-ghcr.io/athamour1/aed-map/api:latest}
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    command: ['pnpm', 'run', 'db:migrate']
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # One-time bootstrap: imports the original aed-locations.json into a fresh
+  # database. Not part of the normal service lifecycle (no `depends_on` from
+  # `api`, gated behind a profile so `docker compose up` never runs it).
+  # Uses the `build` stage directly since it still has the dev tooling (tsx)
+  # that the lean production image intentionally excludes. Run explicitly:
+  #   docker compose --profile seed run --rm seed
+  seed:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+      target: build
+    profiles: ['seed']
+    command: ['pnpm', '--filter', 'aed-map-api', 'run', 'db:seed']
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    image: ${API_IMAGE:-ghcr.io/athamour1/aed-map/api:latest}
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    expose:
+      - '3000'
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../apps/public/dist/pwa:/srv/public:ro
+      - ../apps/admin/dist:/srv/admin:ro
+      - certbot_www:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+    depends_on:
+      - api
+
+  # Renewal loop only — initial issuance is the manual bootstrap step documented
+  # at the top of nginx.conf (`certbot certonly`, run once by hand on the VPS).
+  #
+  # NOTE: `certbot renew` here only refreshes the cert files on the shared volume —
+  # it cannot reload the separate `nginx` container's process itself (no Docker
+  # socket access from inside this container). Reloading nginx after a renewal is
+  # a host-level cron job outside this compose file, e.g.:
+  #   0 3 * * * docker compose -f infra/docker-compose.yml exec nginx nginx -s reload
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    entrypoint: >
+      sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+
+volumes:
+  postgres_data:
+  certbot_www:
+  certbot_certs:
