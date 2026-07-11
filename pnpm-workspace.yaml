@@ -11,4 +11,8 @@ onlyBuiltDependencies:
 
 allowBuilds:
   '@parcel/watcher': true
+  '@prisma/engines': true
+  argon2: true
   esbuild: true
+  prisma: true
+  unrs-resolver: true

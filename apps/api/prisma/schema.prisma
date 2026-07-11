@@ -1,0 +1,92 @@
+// Prisma schema for AED Map — see /home/thanos98/.claude/plans/as-a-expert-in-zazzy-octopus.md §3
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+}
+
+/// Public data — physical AED site. Never joined with Device in the public API.
+model Location {
+  id          String   @id @default(uuid())
+  name        String
+  addressText String
+  lat         Float
+  lng         Float
+  isAvailable Boolean  @default(true)
+  is24h       Boolean  @default(false)
+  /// Weekday-keyed opening hours, e.g. {"1": [{"open":"08:00","close":"14:00"}]}
+  schedule    Json?
+  devices     Device[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// Admin-only data — a physical AED unit and its maintenance dates. Never exposed publicly.
+model Device {
+  id                    String    @id @default(uuid())
+  location              Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId            String
+  serialNumber          String    @unique
+  model                 String?
+  manufacturer          String?
+  installDate           DateTime?
+  batteryExpirationDate DateTime?
+  padsExpirationDate    DateTime?
+  lastInspectionDate    DateTime?
+  nextInspectionDue     DateTime?
+  notes                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String?
+  role          Role           @default(EDITOR)
+  displayName   String
+  isActive      Boolean        @default(false)
+  invitedBy     User?          @relation("UserInvites", fields: [invitedById], references: [id])
+  invitedById   String?
+  invitedUsers  User[]         @relation("UserInvites")
+  lastLoginAt   DateTime?
+  inviteTokens  InviteToken[]
+  refreshTokens RefreshToken[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+/// One-time, single-use invite link. The raw token only ever exists in the emailed/shared link — only its hash is stored.
+model InviteToken {
+  id        String    @id @default(uuid())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+/// Rotating refresh token chain. Only the hash is persisted; presenting a revoked token signals theft.
+model RefreshToken {
+  id           String        @id @default(uuid())
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  tokenHash    String        @unique
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedBy   RefreshToken? @relation("TokenRotation", fields: [replacedById], references: [id])
+  replacedById String?       @unique
+  replaces     RefreshToken? @relation("TokenRotation")
+  userAgent    String?
+  ipAddress    String?
+  createdAt    DateTime      @default(now())
+}
