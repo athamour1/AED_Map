@@ -1,43 +1,37 @@
-# AED Map (aed-map)
+# AED Map
 
-AED Locator PWA
+A monorepo for the AED (defibrillator) locator project.
 
-## Install the dependencies
-
-```bash
-yarn
-# or
-npm install
+```
+apps/
+  public/   # Public map PWA (Quasar/Vue) — no login required
+  admin/    # Admin panel (Quasar/Vue) — invite-only, manages locations & devices [planned]
+  api/      # Backend API (NestJS + PostgreSQL) [planned]
+packages/
+  shared/   # Pure logic shared between apps/public and apps/admin [planned]
+infra/      # Self-hosted deployment (Docker Compose, Caddy) [planned]
 ```
 
-### Start the app in development mode (hot-code reloading, error reporting, etc.)
+Package manager: [pnpm](https://pnpm.io) workspaces.
+
+## Install dependencies
 
 ```bash
-quasar dev
+pnpm install
 ```
 
-### Lint the files
+## Public map — develop
 
 ```bash
-yarn lint
-# or
-npm run lint
+pnpm --filter aed-map-public dev
 ```
 
-### Format the files
+## Public map — lint / format / build
 
 ```bash
-yarn format
-# or
-npm run format
+pnpm --filter aed-map-public lint
+pnpm --filter aed-map-public format
+pnpm --filter aed-map-public build
 ```
 
-### Build the app for production
-
-```bash
-quasar build
-```
-
-### Customize the configuration
-
-See [Configuring quasar.config.js](https://v2.quasar.dev/quasar-cli-vite/quasar-config-js).
+Or run any script across every workspace package: `pnpm -r <script>` (e.g. `pnpm -r lint`).
