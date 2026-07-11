@@ -1,11 +1,17 @@
 const routes = [
+  // `path` here is never itself navigated to — it exists only so this parent
+  // record doesn't collide with the `/` MainLayout group below (two sibling
+  // routes both at literal path '/' is ambiguous; Vue Router only reliably
+  // matches one of them). The children below use *absolute* paths ('/login',
+  // not 'login'), which Vue Router still renders nested inside AuthLayout's
+  // <router-view> while giving them the URLs we actually want.
   {
-    path: '/',
+    path: '/session',
     component: () => import('layouts/AuthLayout.vue'),
     children: [
-      { path: 'login', name: 'login', component: () => import('pages/LoginPage.vue') },
+      { path: '/login', name: 'login', component: () => import('pages/LoginPage.vue') },
       {
-        path: 'accept-invite',
+        path: '/accept-invite',
         name: 'accept-invite',
         component: () => import('pages/AcceptInvitePage.vue'),
       },

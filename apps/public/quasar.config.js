@@ -154,6 +154,12 @@ export default defineConfig((/* ctx */) => {
       extendGenerateSWOptions (cfg) {
         cfg.skipWaiting = true;
         cfg.clientsClaim = true;
+        // This service worker's scope is the whole origin ("/"), same as
+        // apps/admin and apps/api under nginx's path-based routing (infra/nginx.conf).
+        // Without this, Workbox's default navigateFallback serves this app's
+        // cached shell for *any* same-origin navigation — including
+        // /admin/* — which then 404s inside the wrong app's router.
+        cfg.navigateFallbackDenylist = [/^\/admin\//, /^\/api\//];
         // Add runtime caching for offline support
         cfg.runtimeCaching = [
           {

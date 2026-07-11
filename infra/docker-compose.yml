@@ -64,6 +64,25 @@ services:
     expose:
       - '3000'
 
+  # One-shot: builds apps/public and copies the static output into a shared
+  # volume for nginx to serve. Re-running `docker compose up` after a source
+  # change rebuilds this image and re-syncs the volume — no host bind-mount,
+  # no separate rsync-to-VPS step needed.
+  public-assets:
+    build:
+      context: ..
+      dockerfile: apps/public/Dockerfile
+    volumes:
+      - public_dist:/output
+
+  # Same idea as public-assets, for apps/admin.
+  admin-assets:
+    build:
+      context: ..
+      dockerfile: apps/admin/Dockerfile
+    volumes:
+      - admin_dist:/output
+
   # Plain HTTP on 8080 — no TLS/certbot here. Put this behind whatever
   # reverse proxy you already run to terminate TLS on the real domain and
   # forward to this port.
@@ -74,10 +93,17 @@ services:
       - '8080:80'
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ../apps/public/dist/pwa:/srv/public:ro
-      - ../apps/admin/dist:/srv/admin:ro
+      - public_dist:/srv/public:ro
+      - admin_dist:/srv/admin:ro
     depends_on:
-      - api
+      api:
+        condition: service_started
+      public-assets:
+        condition: service_completed_successfully
+      admin-assets:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:
+  public_dist:
+  admin_dist:
