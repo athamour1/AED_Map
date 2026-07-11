@@ -1,0 +1,53 @@
+name: Deploy API
+
+# Runs after CI passes on master. Deployment itself is gated behind the
+# `DEPLOY_ENABLED` repository variable — leave unset/false until the VPS is
+# provisioned and the SSH_HOST/SSH_USER/SSH_PRIVATE_KEY secrets exist, so this
+# workflow is a harmless no-op until then instead of failing every run.
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [master]
+
+jobs:
+  deploy:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          # Must match the `image:` fallback in infra/docker-compose.yml (GHCR
+          # requires lowercase — github.repository isn't reliably lowercase).
+          tags: |
+            ghcr.io/athamour1/aed-map/api:${{ github.event.workflow_run.head_sha }}
+            ghcr.io/athamour1/aed-map/api:latest
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}
+            docker compose -f infra/docker-compose.yml pull migrate api
+            docker compose -f infra/docker-compose.yml up -d migrate api
