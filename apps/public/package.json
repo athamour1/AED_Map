@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
+    "aed-map-shared": "workspace:*",
     "leaflet": "^1.9.4",
     "quasar": "^2.16.0",
     "register-service-worker": "^1.7.2",
