@@ -2,6 +2,10 @@
   <q-page>
     <div id="map" class="absolute-full"></div>
 
+    <div v-if="loading" class="absolute-full flex flex-center bg-white" style="z-index: 2;">
+      <q-spinner color="primary" size="3em" />
+    </div>
+
     <!-- Bottom Sheet Dialog -->
     <q-dialog v-model="isDialogOpen" position="bottom" full-width>
       <q-card class="q-pa-sm" style="border-radius: 20px 20px 0 0; border: none; padding-bottom: max(env(safe-area-inset-bottom), 12px);" v-if="selectedAed">
@@ -14,7 +18,7 @@
         <q-card-section class="q-pt-sm">
           <div class="q-mb-sm text-body1 row justify-start">
             <q-icon name="place" color="grey-7" size="sm" class="q-mr-xs" />
-            <div class="col">{{ selectedAed.locationDetails }}</div>
+            <div class="col">{{ selectedAed.addressText }}</div>
           </div>
           
           <div class="q-mb-sm row items-center text-body1">
@@ -72,11 +76,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useQuasar } from 'quasar';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import aedLocations from 'assets/aed-locations.json';
+
+const $q = useQuasar();
 
 const map = ref(null);
+const loading = ref(true);
 const isDialogOpen = ref(false);
 const selectedAed = ref(null);
 
@@ -88,7 +95,24 @@ const formatSchedule = (daySchedule) => {
   return daySchedule.map(slot => `${slot.open} - ${slot.close}`).join(', ');
 };
 
-onMounted(() => {
+onMounted(async () => {
+  let aedLocations = [];
+  try {
+    const response = await fetch('/api/locations');
+    if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+    aedLocations = await response.json();
+  } catch {
+    $q.notify({
+      type: 'negative',
+      message: 'Could not load AED locations. Check your connection and try again.',
+      position: 'top',
+      timeout: 0,
+      actions: [{ label: 'Dismiss', color: 'white' }],
+    });
+  } finally {
+    loading.value = false;
+  }
+
   // Center over Athens, Greece
   map.value = L.map('map', {
     zoomControl: false // Disable default zoom control to move it
