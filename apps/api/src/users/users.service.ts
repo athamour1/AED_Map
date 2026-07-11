@@ -1,9 +1,25 @@
 import { randomBytes, createHash } from 'node:crypto';
-import { ConflictException, Injectable } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 const INVITE_TOKEN_TTL_MS = 72 * 60 * 60 * 1000; // 72 hours
+
+// Never includes passwordHash — this is the shape returned to the admin UI.
+const USER_LIST_SELECT = {
+  id: true,
+  email: true,
+  displayName: true,
+  role: true,
+  isActive: true,
+  lastLoginAt: true,
+  createdAt: true,
+} as const;
 
 export interface InviteResult {
   userId: string;
@@ -15,6 +31,31 @@ export interface InviteResult {
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  findAll() {
+    return this.prisma.user.findMany({
+      select: USER_LIST_SELECT,
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async update(id: string, dto: UpdateUserDto) {
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data: dto,
+        select: USER_LIST_SELECT,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException(`User ${id} not found`);
+      }
+      throw error;
+    }
+  }
 
   async invite(
     email: string,
