@@ -20,9 +20,8 @@ COPY apps/public apps/public
 RUN pnpm --filter aed-map-public exec quasar prepare
 RUN pnpm --filter aed-map-public build:pwa
 
-# ---- artifact: holds only the static output. Never runs as a server itself —
-# the `public-assets` compose service runs this image once to copy the files
-# into a shared volume that the `nginx` service then serves directly.
-FROM alpine:3.20 AS artifact
-COPY --from=build /repo/apps/public/dist/pwa /dist
-CMD ["sh", "-c", "rm -rf /output/* && cp -a /dist/. /output/ && echo 'apps/public assets synced'"]
+# ---- runtime: this app serves itself — the infra/nginx.conf gateway
+# reverse-proxies to this container rather than reading its files directly.
+FROM nginx:1.27-alpine AS runtime
+COPY apps/public/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /repo/apps/public/dist/pwa /usr/share/nginx/html

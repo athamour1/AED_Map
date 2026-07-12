@@ -20,9 +20,8 @@ COPY apps/admin apps/admin
 RUN pnpm --filter aed-map-admin exec quasar prepare
 RUN pnpm --filter aed-map-admin build
 
-# ---- artifact: holds only the static output. Never runs as a server itself —
-# the `admin-assets` compose service runs this image once to copy the files
-# into a shared volume that the `nginx` service then serves directly.
-FROM alpine:3.20 AS artifact
-COPY --from=build /repo/apps/admin/dist/spa /dist
-CMD ["sh", "-c", "rm -rf /output/* && cp -a /dist/. /output/ && echo 'apps/admin assets synced'"]
+# ---- runtime: this app serves itself — the infra/nginx.conf gateway
+# reverse-proxies to this container rather than reading its files directly.
+FROM nginx:1.27-alpine AS runtime
+COPY apps/admin/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /repo/apps/admin/dist/spa /usr/share/nginx/html/admin

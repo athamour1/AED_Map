@@ -39,5 +39,5 @@ Across every workspace package: `pnpm -r <script>` (e.g. `pnpm -r lint`, `pnpm -
 There is no GitHub Actions CI/CD in this repo — everything is run on demand, locally:
 
 - **API image**: `./scripts/push-api-image.sh` builds `apps/api/Dockerfile` and pushes it to GHCR, using your local `docker`/`gh` CLI auth. Run it whenever you want to publish a new image, not automatically on push.
-- **Self-hosted stack**: see [infra/docker-compose.yml](infra/docker-compose.yml) and [infra/nginx.conf](infra/nginx.conf) — nginx serves plain HTTP on `:8080`, path-routing `/`, `/admin/`, `/api/` to the three apps. Put your own reverse proxy in front of it for TLS/the real domain.
-- **Frontends** (`apps/public`, `apps/admin`): currently built and deployed manually — no script yet.
+- **Self-hosted stack**: see [infra/docker-compose.yml](infra/docker-compose.yml) and [infra/nginx.conf](infra/nginx.conf) — a gateway nginx serves plain HTTP on `:8080` and reverse-proxies `/`, `/admin/`, `/api/` to the `public`/`admin`/`api` containers, each of which builds and serves its own content (`apps/public`/`apps/admin` each bundle nginx as the last Docker layer). Put your own reverse proxy in front of it for TLS/the real domain.
+- **Frontends** (`apps/public`, `apps/admin`): built and served automatically as part of `docker compose up -d --build` — no separate deploy step.
