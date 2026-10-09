@@ -79,8 +79,17 @@ Internet ──443──▶ your reverse proxy (TLS) ──▶ 127.0.0.1:8080 ga
 | `BIND_ADDR` | no | `127.0.0.1` | Host address the gateway listens on (see *Ports* below). |
 | `HTTP_PORT` | no | `8080` | Host port of the gateway. |
 
-Compose refuses to start if a required variable is missing. To generate a
-file with random secrets on the server (edit the domain and tag):
+Compose refuses to start if a required variable is missing, and the api
+refuses to boot on a weak `JWT_ACCESS_SECRET` (shorter than 32 characters, a
+placeholder, or an unexpanded `$(...)`).
+
+> **Using a UI (Arcane, Portainer, Dockge…) to edit the env?** Never paste
+> `$(openssl …)` into it — UIs store it as literal text, so the "secret" becomes
+> a string anyone can read in this README. Run `openssl rand -hex 24` and
+> `openssl rand -base64 48` in a terminal and paste their **output**.
+
+In a shell on the server, this generates a file with random secrets (edit the
+domain and tag):
 
 ```bash
 cat > .env.prod <<EOF
