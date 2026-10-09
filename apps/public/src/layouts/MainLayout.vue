@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
+  <q-layout view="hHh lpr fff">
     <q-header elevated class="bg-primary text-white">
       <q-toolbar>
         <q-toolbar-title class="row items-center">
@@ -17,8 +17,7 @@
           dense
           icon="install_mobile"
           label="Install"
-          class="q-px-sm text-weight-bold q-ml-sm"
-          style="background-color: rgba(255,255,255,0.2);"
+          class="q-px-sm text-weight-bold q-ml-sm install-btn"
           @click="installPWA"
         />
       </q-toolbar>
@@ -58,9 +57,15 @@ async function installPWA() {
 
   // Wait for the user to respond
   const { outcome } = await deferredPrompt.value.userChoice;
-  
+
   if (outcome === 'accepted') {
     deferredPrompt.value = null; // Hide the button once installed
   }
 }
 </script>
+
+<style scoped>
+.install-btn {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+</style>

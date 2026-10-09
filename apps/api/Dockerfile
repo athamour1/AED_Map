@@ -13,9 +13,6 @@ RUN pnpm install --frozen-lockfile
 # ---- build: compile the Nest app ----
 FROM deps AS build
 COPY apps/api apps/api
-# The seed script (run from this stage via the `seed` compose service) reads
-# the original data file out of apps/public — only that one file is needed here.
-COPY apps/public/src/assets/aed-locations.json apps/public/src/assets/aed-locations.json
 RUN pnpm --filter aed-map-api exec prisma generate
 RUN pnpm --filter aed-map-api run build
 

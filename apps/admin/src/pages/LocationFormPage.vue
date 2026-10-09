@@ -1,119 +1,240 @@
 <template>
-  <q-page class="q-pa-md">
-    <div class="row items-center q-mb-md">
-      <q-btn flat dense round icon="arrow_back" :to="{ name: 'locations' }" class="q-mr-sm" />
-      <div class="text-h5">{{ isEditing ? 'Edit location' : 'New location' }}</div>
-      <q-space />
-      <q-btn
-        v-if="isEditing"
-        flat
-        color="negative"
-        icon="delete"
-        label="Delete location"
-        @click="deleteDialogOpen = true"
-      />
-    </div>
-
+  <q-page class="bg-grey-1 q-pa-md" :style="$q.screen.lt.md ? { paddingBottom: '96px' } : {}">
     <div v-if="loading" class="flex flex-center q-pa-xl">
       <q-spinner color="primary" size="3em" />
     </div>
 
     <template v-else>
-      <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-6">
-          <q-card flat bordered>
-            <q-card-section>
-              <div class="text-subtitle1 q-mb-sm">Details</div>
-              <q-form class="q-gutter-sm">
-                <q-input v-model="form.name" label="Name *" outlined dense
-                  :rules="[(val) => !!val || 'Required']" />
-                <q-input v-model="form.addressText" label="Address *" outlined dense
-                  :rules="[(val) => !!val || 'Required']" />
-                <q-toggle v-model="form.isAvailable" label="Available" color="positive" />
-                <q-toggle v-model="form.is24h" label="Open 24 hours" color="primary" />
-              </q-form>
-            </q-card-section>
-          </q-card>
-
-          <q-card flat bordered class="q-mt-md" v-if="!form.is24h">
-            <q-card-section>
-              <div class="text-subtitle1 q-mb-sm">Weekly schedule</div>
-              <div v-for="(day, index) in dayNames" :key="index" class="row items-center q-mb-xs q-col-gutter-sm">
-                <div class="col-3">
-                  <q-checkbox v-model="scheduleDays[index].enabled" :label="day" dense />
-                </div>
-                <div class="col-4" v-if="scheduleDays[index].enabled">
-                  <q-input v-model="scheduleDays[index].open" type="time" dense outlined stack-label label="Open" />
-                </div>
-                <div class="col-4" v-if="scheduleDays[index].enabled">
-                  <q-input v-model="scheduleDays[index].close" type="time" dense outlined stack-label label="Close" />
-                </div>
+      <q-form @submit.prevent="handleSave">
+        <!-- Command bar: identity + primary actions always together -->
+        <q-card flat bordered class="q-mb-md">
+          <div class="row items-center no-wrap q-pa-sm">
+            <q-btn flat dense round icon="arrow_back" aria-label="Back to locations" class="q-mr-sm" :to="{ name: 'locations' }" />
+            <div class="col" style="min-width: 0">
+              <div class="text-overline text-grey-6" style="line-height: 1.2">
+                {{ isEditing ? 'Edit location' : 'New location' }}
               </div>
-            </q-card-section>
-          </q-card>
+              <div class="text-subtitle1 text-weight-bold ellipsis" style="line-height: 1.3">
+                {{ form.name || 'Untitled location' }}
+              </div>
+            </div>
+            <q-btn
+              v-if="isEditing"
+              flat
+              dense
+              round
+              icon="delete"
+              color="negative"
+              aria-label="Delete location"
+              class="q-mr-sm"
+              @click="confirmDeleteLocation"
+            />
+            <q-btn flat no-caps label="Cancel" class="gt-sm q-mr-sm text-grey-8" :to="{ name: 'locations' }" />
+            <q-btn
+              type="submit"
+              color="primary"
+              no-caps
+              unelevated
+              :label="$q.screen.gt.xs ? 'Save location' : 'Save'"
+              :loading="saving"
+            />
+          </div>
+        </q-card>
+
+        <!-- The map is the workspace, controls float over it -->
+        <q-card flat bordered class="q-mb-md overflow-hidden">
+          <div class="relative-position">
+            <div id="picker-map" style="height: clamp(280px, 42vh, 460px); z-index: 0"></div>
+            <q-chip square dense icon="touch_app" class="absolute-top-right q-ma-sm bg-white text-grey-8 shadow-2">
+              Tap the map or drag the pin
+            </q-chip>
+            <q-chip square dense icon="place" class="absolute-bottom-left q-ma-sm bg-white text-grey-8 shadow-2">
+              {{ form.lat.toFixed(6) }}, {{ form.lng.toFixed(6) }}
+            </q-chip>
+            <q-btn
+              color="white"
+              text-color="primary"
+              no-caps
+              unelevated
+              icon="my_location"
+              :label="$q.screen.gt.xs ? 'Use my location' : undefined"
+              aria-label="Use my location"
+              class="absolute-bottom-right q-mr-sm shadow-3"
+              style="margin-bottom: 28px"
+              :loading="locating"
+              @click="useMyLocation"
+            />
+          </div>
+        </q-card>
+
+        <div class="row q-col-gutter-md">
+          <div class="col-12 col-md-6">
+            <q-card flat bordered class="full-height">
+              <q-card-section>
+                <div class="text-overline text-grey-6 q-mb-sm">Identity</div>
+                <q-input
+                  v-model="form.name"
+                  label="Name *"
+                  outlined
+                  dense
+                  class="q-mb-sm"
+                  :rules="[(val) => !!val || 'Required']"
+                />
+                <q-input
+                  v-model="form.addressText"
+                  label="Address *"
+                  outlined
+                  dense
+                  :rules="[(val) => !!val || 'Required']"
+                />
+
+                <q-separator class="q-my-md" />
+
+                <div class="text-overline text-grey-6 q-mb-xs">Status</div>
+                <div class="row items-center justify-between no-wrap q-py-xs">
+                  <div>
+                    <div class="text-body2 text-weight-medium">In service</div>
+                    <div class="text-caption text-grey-6">Shown as available on the public map</div>
+                  </div>
+                  <q-toggle v-model="form.isAvailable" color="positive" aria-label="In service" />
+                </div>
+                <div class="row items-center justify-between no-wrap q-py-xs">
+                  <div>
+                    <div class="text-body2 text-weight-medium">Open 24/7</div>
+                    <div class="text-caption text-grey-6">Always reachable — no weekly schedule needed</div>
+                  </div>
+                  <q-toggle v-model="form.is24h" color="primary" aria-label="Open 24/7" />
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <q-card flat bordered class="full-height">
+              <q-card-section>
+                <div class="text-overline text-grey-6 q-mb-sm">Weekly hours</div>
+
+                <div v-if="form.is24h" class="column flex-center text-center q-pa-lg text-grey-6">
+                  <q-icon name="all_inclusive" size="32px" class="q-mb-sm" />
+                  <div class="text-body2">Open around the clock — no schedule needed.</div>
+                </div>
+
+                <template v-else>
+                  <div class="row q-gutter-xs q-mb-md">
+                    <q-chip
+                      v-for="(day, index) in dayNames"
+                      :key="day"
+                      clickable
+                      dense
+                      class="text-weight-medium"
+                      :color="scheduleDays[index].enabled ? 'primary' : 'grey-3'"
+                      :text-color="scheduleDays[index].enabled ? 'white' : 'grey-8'"
+                      @click="scheduleDays[index].enabled = !scheduleDays[index].enabled"
+                    >
+                      {{ day.slice(0, 3) }}
+                    </q-chip>
+                  </div>
+
+                  <div v-if="!scheduleDays.some((d) => d.enabled)" class="text-caption text-grey-6">
+                    Select the days this AED is reachable, then set its hours.
+                  </div>
+
+                  <template v-for="(day, index) in dayNames" :key="index">
+                    <div v-if="scheduleDays[index].enabled" class="row items-center q-col-gutter-sm q-mb-xs">
+                      <div class="col-4 col-sm-3 text-body2 text-weight-medium">{{ day }}</div>
+                      <div class="col">
+                        <q-input v-model="scheduleDays[index].open" type="time" dense outlined stack-label label="Opens" />
+                      </div>
+                      <div class="col">
+                        <q-input v-model="scheduleDays[index].close" type="time" dense outlined stack-label label="Closes" />
+                      </div>
+                    </div>
+                  </template>
+                </template>
+              </q-card-section>
+            </q-card>
+          </div>
         </div>
 
-        <div class="col-12 col-md-6">
-          <q-card flat bordered>
-            <q-card-section>
-              <div class="text-subtitle1 q-mb-sm">
-                Location on map
-                <span class="text-caption text-grey-7">— click to set coordinates</span>
-              </div>
-              <div id="picker-map" style="height: 320px; border-radius: 4px;"></div>
-              <div class="text-caption text-grey-7 q-mt-xs">
-                {{ form.lat.toFixed(6) }}, {{ form.lng.toFixed(6) }}
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
+        <!-- On phones the command bar scrolls away; keep Save reachable -->
+        <q-page-sticky position="bottom" expand class="lt-md" style="z-index: 3">
+          <div
+            class="full-width bg-white shadow-up-2 row items-center justify-end q-gutter-sm q-pa-sm"
+            style="padding-bottom: max(env(safe-area-inset-bottom), 8px)"
+          >
+            <q-btn flat no-caps label="Cancel" class="text-grey-8" :to="{ name: 'locations' }" />
+            <q-btn type="submit" color="primary" no-caps unelevated label="Save location" :loading="saving" />
+          </div>
+        </q-page-sticky>
+      </q-form>
 
-      <div class="row justify-end q-mt-md q-gutter-sm">
-        <q-btn flat label="Cancel" :to="{ name: 'locations' }" />
-        <q-btn color="primary" label="Save location" :loading="saving" unelevated @click="handleSave" />
-      </div>
-
-      <q-card flat bordered class="q-mt-lg" v-if="isEditing">
-        <q-card-section>
+      <div class="q-mt-md">
+        <template v-if="isEditing">
           <div class="row items-center q-mb-sm">
-            <div class="text-subtitle1">Devices</div>
+            <div class="text-overline text-grey-6">Devices · {{ devices.length }}</div>
             <q-space />
-            <q-btn color="primary" icon="add" label="Add device" dense unelevated @click="openAddDevice" />
+            <q-btn color="primary" icon="add" label="Add device" no-caps dense unelevated @click="openAddDevice" />
           </div>
 
-          <div v-if="devices.length === 0" class="text-grey-7 text-center q-pa-md">
-            No devices at this location yet.
-          </div>
+          <q-card v-if="devices.length === 0" flat bordered>
+            <q-card-section class="column flex-center text-center q-pa-lg text-grey-6">
+              <q-icon name="monitor_heart" size="36px" class="q-mb-sm" />
+              <div class="text-body2 q-mb-md">No devices at this location yet.</div>
+              <q-btn color="primary" no-caps unelevated icon="add" label="Add the first device" @click="openAddDevice" />
+            </q-card-section>
+          </q-card>
 
-          <q-list v-else bordered separator>
-            <q-item v-for="device in devices" :key="device.id">
-              <q-item-section>
-                <q-item-label class="text-weight-medium">
-                  {{ device.serialNumber }}
-                  <span class="text-grey-7 text-caption" v-if="device.manufacturer || device.model">
-                    — {{ [device.manufacturer, device.model].filter(Boolean).join(' ') }}
-                  </span>
-                </q-item-label>
-                <div class="row q-gutter-xs q-mt-xs">
-                  <ExpiryBadge v-if="device.batteryExpirationDate" :date="device.batteryExpirationDate" :label="`Battery: ${expiryLabel(device.batteryExpirationDate)}`" />
-                  <ExpiryBadge v-if="device.padsExpirationDate" :date="device.padsExpirationDate" :label="`Pads: ${expiryLabel(device.padsExpirationDate)}`" />
-                  <ExpiryBadge v-if="device.nextInspectionDue" :date="device.nextInspectionDue" :label="`Inspection: ${expiryLabel(device.nextInspectionDue)}`" />
-                </div>
-              </q-item-section>
-              <q-item-section side>
-                <div class="row q-gutter-xs">
-                  <q-btn flat dense round icon="edit" @click="openEditDevice(device)" />
-                  <q-btn flat dense round icon="delete" color="negative" @click="confirmDeleteDevice(device)" />
-                </div>
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-card-section>
-      </q-card>
-      <q-banner v-else dense class="bg-blue-1 text-primary rounded-borders q-mt-lg">
-        Save this location first to start adding devices.
-      </q-banner>
+          <div v-else class="row q-col-gutter-md">
+            <div v-for="device in devices" :key="device.id" class="col-12 col-sm-6 col-lg-4">
+              <q-card flat bordered class="full-height">
+                <q-card-section class="q-pb-sm">
+                  <div class="row items-start no-wrap">
+                    <div class="col" style="min-width: 0">
+                      <div class="text-body1 text-weight-bold ellipsis">{{ device.serialNumber }}</div>
+                      <div class="text-caption text-grey-6 ellipsis">
+                        {{ [device.manufacturer, device.model].filter(Boolean).join(' ') || 'Make and model not set' }}
+                      </div>
+                    </div>
+                    <q-btn flat dense round size="sm" icon="edit" aria-label="Edit device" @click="openEditDevice(device)" />
+                    <q-btn
+                      flat
+                      dense
+                      round
+                      size="sm"
+                      icon="delete"
+                      color="negative"
+                      aria-label="Delete device"
+                      @click="confirmDeleteDevice(device)"
+                    />
+                  </div>
+                </q-card-section>
+                <q-separator />
+                <q-card-section class="q-pt-sm">
+                  <div class="row items-center justify-between q-py-xs">
+                    <span class="text-caption text-grey-7">Battery</span>
+                    <ExpiryBadge :date="device.batteryExpirationDate" :label="expiryLabel(device.batteryExpirationDate)" />
+                  </div>
+                  <div class="row items-center justify-between q-py-xs">
+                    <span class="text-caption text-grey-7">Pads</span>
+                    <ExpiryBadge :date="device.padsExpirationDate" :label="expiryLabel(device.padsExpirationDate)" />
+                  </div>
+                  <div class="row items-center justify-between q-py-xs">
+                    <span class="text-caption text-grey-7">Inspection</span>
+                    <ExpiryBadge :date="device.nextInspectionDue" :label="expiryLabel(device.nextInspectionDue)" />
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+          </div>
+        </template>
+
+        <q-card v-else flat bordered>
+          <q-card-section class="row items-center text-grey-7">
+            <q-icon name="info" color="primary" size="20px" class="q-mr-sm" />
+            <span class="text-body2">Save this location first to start adding its devices.</span>
+          </q-card-section>
+        </q-card>
+      </div>
     </template>
 
     <DeviceDialog
@@ -122,32 +243,6 @@
       :saving="deviceSaving"
       @submit="handleDeviceSubmit"
     />
-
-    <q-dialog v-model="deleteDialogOpen">
-      <q-card style="min-width: 320px">
-        <q-card-section class="text-h6">Delete this location?</q-card-section>
-        <q-card-section class="q-pt-none">
-          This will permanently delete <strong>{{ form.name }}</strong> and its {{ devices.length }} device(s).
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn flat color="negative" label="Delete" :loading="deletingLocation" @click="handleDeleteLocation" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <q-dialog v-model="deleteDeviceDialogOpen">
-      <q-card style="min-width: 320px">
-        <q-card-section class="text-h6">Delete this device?</q-card-section>
-        <q-card-section class="q-pt-none">
-          Serial number <strong>{{ deviceToDelete?.serialNumber }}</strong> will be permanently removed.
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn flat color="negative" label="Delete" :loading="deletingDevice" @click="handleDeleteDevice" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
   </q-page>
 </template>
 
@@ -157,7 +252,18 @@ import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import { expiryStatus } from 'aed-map-shared'
+
+// Leaflet resolves its default marker images relative to its CSS, which
+// breaks under Vite's bundling — point them at the bundled assets instead.
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+})
 import { api } from 'boot/axios'
 import ExpiryBadge from 'components/ExpiryBadge.vue'
 import DeviceDialog from 'components/DeviceDialog.vue'
@@ -172,7 +278,7 @@ const router = useRouter()
 const isEditing = computed(() => !!props.id)
 const loading = ref(isEditing.value)
 const saving = ref(false)
-const deletingLocation = ref(false)
+const locating = ref(false)
 
 const DEFAULT_CENTER = [37.9954210792772, 23.345278116198493] // Megara, Greece
 
@@ -214,6 +320,33 @@ function initMap() {
     form.value.lng = e.latlng.lng
     marker.setLatLng(e.latlng)
   })
+}
+
+// Editors standing at the physical AED can capture its coordinates directly.
+function useMyLocation() {
+  if (!('geolocation' in navigator)) {
+    $q.notify({ type: 'negative', message: 'Location is not supported on this device.' })
+    return
+  }
+  locating.value = true
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      locating.value = false
+      const { latitude, longitude } = position.coords
+      form.value.lat = latitude
+      form.value.lng = longitude
+      marker.setLatLng([latitude, longitude])
+      map.flyTo([latitude, longitude], 17, { duration: 0.6 })
+    },
+    () => {
+      locating.value = false
+      $q.notify({
+        type: 'negative',
+        message: 'Could not get your location. Check that location access is allowed.',
+      })
+    },
+    { enableHighAccuracy: true, timeout: 10000 },
+  )
 }
 
 function applySchedule(schedule) {
@@ -270,11 +403,6 @@ onMounted(async () => {
 })
 
 async function handleSave() {
-  if (!form.value.name || !form.value.addressText) {
-    $q.notify({ type: 'negative', message: 'Name and address are required.' })
-    return
-  }
-
   saving.value = true
   const payload = {
     name: form.value.name,
@@ -302,18 +430,23 @@ async function handleSave() {
   }
 }
 
-const deleteDialogOpen = ref(false)
+function confirmDeleteLocation() {
+  $q.dialog({
+    title: 'Delete this location?',
+    message: `This will permanently delete "${form.value.name}" and its ${devices.value.length} device(s).`,
+    cancel: true,
+    persistent: true,
+    ok: { label: 'Delete', color: 'negative', unelevated: true },
+  }).onOk(handleDeleteLocation)
+}
+
 async function handleDeleteLocation() {
-  deletingLocation.value = true
   try {
     await api.delete(`/admin/locations/${props.id}`)
     $q.notify({ type: 'positive', message: 'Location deleted.' })
     router.push({ name: 'locations' })
   } catch {
     $q.notify({ type: 'negative', message: 'Could not delete location.' })
-  } finally {
-    deletingLocation.value = false
-    deleteDialogOpen.value = false
   }
 }
 
@@ -349,26 +482,23 @@ async function handleDeviceSubmit(payload) {
   }
 }
 
-const deleteDeviceDialogOpen = ref(false)
-const deviceToDelete = ref(null)
-const deletingDevice = ref(false)
-
 function confirmDeleteDevice(device) {
-  deviceToDelete.value = device
-  deleteDeviceDialogOpen.value = true
+  $q.dialog({
+    title: 'Delete this device?',
+    message: `Serial number "${device.serialNumber}" will be permanently removed.`,
+    cancel: true,
+    persistent: true,
+    ok: { label: 'Delete', color: 'negative', unelevated: true },
+  }).onOk(() => handleDeleteDevice(device))
 }
 
-async function handleDeleteDevice() {
-  deletingDevice.value = true
+async function handleDeleteDevice(device) {
   try {
-    await api.delete(`/admin/devices/${deviceToDelete.value.id}`)
-    devices.value = devices.value.filter((d) => d.id !== deviceToDelete.value.id)
+    await api.delete(`/admin/devices/${device.id}`)
+    devices.value = devices.value.filter((d) => d.id !== device.id)
     $q.notify({ type: 'positive', message: 'Device deleted.' })
   } catch {
     $q.notify({ type: 'negative', message: 'Could not delete device.' })
-  } finally {
-    deletingDevice.value = false
-    deleteDeviceDialogOpen.value = false
   }
 }
 

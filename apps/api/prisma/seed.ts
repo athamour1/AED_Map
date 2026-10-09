@@ -25,7 +25,7 @@ async function main() {
     return;
   }
 
-  const sourcePath = join(__dirname, '../../public/src/assets/aed-locations.json');
+  const sourcePath = join(__dirname, 'seed-data/aed-locations.json');
   const source: SourceLocation[] = JSON.parse(readFileSync(sourcePath, 'utf-8'));
 
   await prisma.location.createMany({

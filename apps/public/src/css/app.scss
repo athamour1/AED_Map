@@ -1,1 +1,8 @@
 // app global css in SCSS form
+
+// Buttons read as sentence-case controls, never shouting labels. A global
+// rule (same specificity as Quasar's, loaded later) also covers buttons a
+// `no-caps` prop can't reach, like notification actions.
+.q-btn {
+  text-transform: none;
+}

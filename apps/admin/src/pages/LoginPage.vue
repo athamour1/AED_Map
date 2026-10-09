@@ -1,6 +1,6 @@
 <template>
-  <q-page class="flex flex-center bg-blue-grey-1">
-    <q-card style="width: 100%; max-width: 380px" class="q-pa-md">
+  <q-page class="flex flex-center bg-blue-grey-1 q-pa-md">
+    <q-card class="dialog-card--sm q-pa-md">
       <q-card-section class="text-center">
         <q-icon name="favorite" color="primary" size="40px" />
         <div class="text-h6 q-mt-sm">AED Map Admin</div>

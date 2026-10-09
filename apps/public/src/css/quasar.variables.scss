@@ -23,3 +23,8 @@ $positive: #21ba45;
 $negative: #c10015;
 $info: #31ccec;
 $warning: #f2c037;
+
+// Fluent rounded surface language, matching apps/admin: one token flows into
+// cards, dialogs, banners, fields and the `rounded-borders` utility class.
+$generic-border-radius: 12px;
+$button-border-radius: 10px;

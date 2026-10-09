@@ -159,7 +159,7 @@ export default defineConfig((/* ctx */) => {
         // Without this, Workbox's default navigateFallback serves this app's
         // cached shell for *any* same-origin navigation — including
         // /admin/* — which then 404s inside the wrong app's router.
-        cfg.navigateFallbackDenylist = [/^\/admin\//, /^\/api\//];
+        cfg.navigateFallbackDenylist = [/^\/admin(\/|$)/, /^\/api(\/|$)/];
         // Add runtime caching for offline support
         cfg.runtimeCaching = [
           {

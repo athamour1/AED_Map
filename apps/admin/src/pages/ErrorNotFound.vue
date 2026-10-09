@@ -1,23 +1,12 @@
 <template>
-  <div class="fullscreen bg-primary text-white text-center q-pa-md flex flex-center">
-    <div>
-      <div style="font-size: 30vh">404</div>
-
-      <div class="text-h2" style="opacity: 0.4">Oops. Nothing here...</div>
-
-      <q-btn
-        class="q-mt-xl"
-        color="white"
-        text-color="primary"
-        unelevated
-        to="/"
-        label="Go Home"
-        no-caps
-      />
-    </div>
-  </div>
+  <q-layout>
+    <q-page-container>
+      <q-page class="flex flex-center column q-gutter-md">
+        <q-icon name="location_off" size="120px" color="grey-5" />
+        <div class="text-h3 text-grey-7">404</div>
+        <div class="text-subtitle1 text-grey-6">Page not found</div>
+        <q-btn color="primary" unelevated to="/" label="Go Home" />
+      </q-page>
+    </q-page-container>
+  </q-layout>
 </template>
-
-<script setup>
-//
-</script>

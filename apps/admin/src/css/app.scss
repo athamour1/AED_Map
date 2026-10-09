@@ -1,1 +1,36 @@
 // app global css in SCSS form
+
+// Buttons read as sentence-case controls, never shouting labels. A global
+// rule (same specificity as Quasar's, loaded later) also covers buttons a
+// `no-caps` prop can't reach, like the Dialog plugin's OK/Cancel.
+.q-btn {
+  text-transform: none;
+}
+
+// Shared width tiers for card-based dialogs/forms, replacing one-off inline
+// widths (previously 320/380/420px scattered across pages with no shared
+// convention).
+.dialog-card--sm {
+  width: 100%;
+  max-width: 380px;
+}
+.dialog-card--md {
+  width: 100%;
+  max-width: 480px;
+}
+
+// Inside dialogs, Quasar's own `.q-dialog__inner--minimized > div` rule
+// (specificity 0,1,1) outranks the bare tier classes (0,1,0) and forces its
+// 560px default — restate the tiers with dialog-level specificity so they win.
+.q-dialog__inner > .dialog-card--sm {
+  max-width: 380px;
+}
+.q-dialog__inner > .dialog-card--md {
+  max-width: 480px;
+}
+
+// A dialog maximized on phones must be allowed to fill the screen.
+.q-dialog__inner--maximized > .dialog-card--sm,
+.q-dialog__inner--maximized > .dialog-card--md {
+  max-width: none;
+}
