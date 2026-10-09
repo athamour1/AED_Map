@@ -1,5 +1,5 @@
 <template>
-  <q-page class="bg-grey-1 q-pa-md" :style="$q.screen.lt.md ? { paddingBottom: '96px' } : {}">
+  <q-page class="q-pa-md" :style="$q.screen.lt.md ? { paddingBottom: '96px' } : {}">
     <div v-if="loading" class="flex flex-center q-pa-xl">
       <q-spinner color="primary" size="3em" />
     </div>

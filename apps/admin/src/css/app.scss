@@ -1,10 +1,330 @@
 // app global css in SCSS form
+//
+// Design language ported from the Trifylli admin: soft rounded surfaces,
+// floating panels on desktop, pill navigation, quiet elevation that lifts on
+// hover and presses on click, short Material-3 motion. Brand-neutral — every
+// tint comes from --brand-ink, which here is the admin's slate primary.
 
-// Buttons read as sentence-case controls, never shouting labels. A global
-// rule (same specificity as Quasar's, loaded later) also covers buttons a
-// `no-caps` prop can't reach, like the Dialog plugin's OK/Cancel.
+/* ════════════════════════════════════════════════════════════════════════
+   Design tokens
+   ════════════════════════════════════════════════════════════════════════ */
+:root {
+  --brand-ink: var(--q-primary);
+  --surface: #ffffff;
+  --app-bg: #f2f4f5; /* soft slate off-white, not stark white */
+  --border-soft: #e2e6e9;
+  --muted: #5d6b73;
+  --ink: #1e272c; /* deep slate instead of pure black */
+  --radius-card: 14px;
+  --radius-panel: 16px;
+  --radius-dialog: 20px;
+  --shadow-1: 0 1px 2px rgba(16, 22, 26, 0.04), 0 1px 3px rgba(16, 22, 26, 0.06);
+  --shadow-2: 0 6px 16px rgba(16, 22, 26, 0.09), 0 2px 6px rgba(16, 22, 26, 0.05);
+  --line: rgba(0, 0, 0, 0.12);
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.3, 0, 0, 1);
+  --dur-short: 120ms;
+  --dur-medium: 200ms;
+  /* M3 state layers: how much ink sits on a surface. */
+  --state-hover: 8%;
+  --state-press: 12%;
+}
+
+body {
+  background: var(--app-bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.006em;
+}
+
+/* ── Typography ── */
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.021em;
+  color: var(--ink);
+}
+.page-subtitle {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Cards & lists: soft border, quiet shadow, round corners
+   ════════════════════════════════════════════════════════════════════════ */
+.q-card {
+  border-radius: var(--radius-card);
+  transition:
+    box-shadow var(--dur-medium) var(--ease-standard),
+    transform var(--dur-medium) var(--ease-standard);
+}
+.q-card--bordered {
+  border-color: var(--border-soft);
+}
+.q-card--flat.q-card--bordered {
+  box-shadow: var(--shadow-1);
+}
+.q-card.cursor-pointer:hover,
+a.q-card:hover {
+  box-shadow: var(--shadow-2);
+  transform: translateY(-2px);
+}
+
+/* Cards rise in gently, staggered (first 8 per page only). */
+@keyframes aed-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.q-page .q-card {
+  animation: aed-rise 260ms var(--ease-emphasized) both;
+}
+@for $i from 1 through 8 {
+  .q-page .q-card:nth-of-type(#{$i}) {
+    animation-delay: #{($i - 1) * 30}ms;
+  }
+}
+
+.q-list--bordered {
+  border-color: var(--border-soft);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.q-item.q-item--clickable {
+  border-radius: 10px;
+  transition:
+    background-color var(--dur-medium) var(--ease-standard),
+    color var(--dur-medium) var(--ease-standard);
+}
+.q-list--bordered > .q-item.q-item--clickable,
+.q-list--separator > .q-item.q-item--clickable {
+  border-radius: 0;
+}
+
+/* Table rows: soft hover so you know where you are. */
+.q-table tbody tr {
+  transition: background-color var(--dur-short) var(--ease-standard);
+}
+.q-table tbody tr:hover {
+  background: color-mix(in srgb, var(--brand-ink) 5%, transparent);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Buttons: sentence case, flat at rest, lift on hover, press on click
+   ════════════════════════════════════════════════════════════════════════ */
+// A global rule also covers buttons a `no-caps` prop can't reach, like the
+// Dialog plugin's OK/Cancel.
 .q-btn {
   text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0;
+  transition:
+    transform var(--dur-short) var(--ease-standard),
+    box-shadow var(--dur-medium) var(--ease-standard),
+    background-color var(--dur-medium) var(--ease-standard),
+    color var(--dur-medium) var(--ease-standard);
+}
+.q-btn.q-btn--standard {
+  box-shadow: none;
+}
+.q-btn.q-btn--standard.q-btn--rectangle:not(.disabled):hover,
+.q-btn.q-btn--unelevated.q-btn--rectangle:not(.disabled):hover,
+.q-btn.q-btn--outline.q-btn--rectangle:not(.disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-2);
+}
+.q-btn:not(.disabled):active {
+  transform: scale(0.97);
+  box-shadow: none;
+  transition-duration: 60ms;
+}
+.q-btn.q-btn--round:not(.disabled):active {
+  transform: scale(0.9);
+}
+.q-focus-helper {
+  transition:
+    background-color var(--dur-medium) var(--ease-standard),
+    opacity var(--dur-medium) var(--ease-standard);
+}
+/* Leading icon gives a small nod on hover (e.g. the ➕ of "New location"). */
+.q-btn__content > .q-icon {
+  transition: transform var(--dur-medium) var(--ease-emphasized);
+}
+.q-btn.q-btn--rectangle:not(.disabled):hover .q-btn__content > .q-icon:first-child {
+  transform: translateX(-1px) scale(1.08);
+}
+
+/* ── Segmented toggles: pill frame, pill options ── */
+.q-btn-toggle {
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: none !important;
+}
+.q-btn-toggle .q-btn {
+  border-radius: 999px !important;
+  min-height: 32px;
+  padding-inline: 14px;
+}
+.q-btn-toggle .q-btn:not(.disabled):hover {
+  transform: none;
+  box-shadow: none;
+}
+.q-btn-toggle .q-btn[aria-pressed='false'] {
+  background: transparent !important;
+  color: var(--muted) !important;
+}
+.q-btn-toggle .q-btn[aria-pressed='false']:hover {
+  color: var(--ink) !important;
+}
+
+/* ── Chips & badges ── */
+.q-chip {
+  font-weight: 600;
+}
+.q-chip--clickable {
+  transition:
+    transform var(--dur-short) var(--ease-standard),
+    box-shadow var(--dur-medium) var(--ease-standard);
+}
+.q-chip--clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-1);
+}
+.q-chip--clickable:active {
+  transform: scale(0.96);
+}
+.q-badge {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Fields: never wider than their container, a soft focus ring
+   ════════════════════════════════════════════════════════════════════════ */
+.q-field {
+  min-width: 0;
+  max-width: 100%;
+}
+.q-field__native,
+.q-field__input {
+  min-width: 0;
+}
+.q-field--outlined .q-field__control {
+  transition: box-shadow var(--dur-medium) var(--ease-standard);
+}
+.q-field--outlined .q-field__control:before {
+  transition: border-color var(--dur-medium) var(--ease-standard);
+}
+.q-field--outlined.q-field--focused:not(.q-field--error) .q-field__control {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-ink) 16%, transparent);
+}
+
+/* ── Tabs ── */
+.q-tab {
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0;
+  border-radius: 10px 10px 0 0;
+}
+.q-tab:hover {
+  background: color-mix(in srgb, var(--brand-ink) 6%, transparent);
+}
+.q-tab__indicator {
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Overlays: dialogs, menus, tooltips, toasts, banners
+   ════════════════════════════════════════════════════════════════════════ */
+.q-dialog__backdrop {
+  background: rgba(12, 18, 22, 0.38);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.q-dialog__inner > .q-card,
+.q-dialog__inner > div {
+  border-radius: var(--radius-dialog);
+}
+.q-dialog__inner > .q-card {
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.28),
+    0 6px 16px rgba(0, 0, 0, 0.14);
+}
+.q-dialog__inner--maximized > div {
+  border-radius: 0;
+}
+.q-transition--scale-enter-active,
+.q-transition--scale-leave-active {
+  transition:
+    transform 220ms var(--ease-emphasized),
+    opacity 180ms var(--ease-standard) !important;
+}
+.q-transition--scale-enter-from,
+.q-transition--scale-leave-to {
+  transform: scale(0.96) !important;
+  opacity: 0;
+}
+/* The dialog focuses itself on open (for keyboards); an outline round the whole
+   card read like an error line. Its contents keep their own. */
+.q-dialog__inner > div:focus,
+.q-dialog__inner > div:focus-visible,
+.q-dialog__inner:focus,
+.q-dialog__inner:focus-visible {
+  outline: none;
+}
+
+.q-menu {
+  border-radius: 14px;
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-2);
+  padding: 4px;
+}
+.q-menu .q-item {
+  border-radius: 10px;
+  margin: 1px 0;
+}
+.q-menu .q-item.q-item--clickable:hover {
+  background: color-mix(in srgb, var(--brand-ink) var(--state-hover), transparent);
+}
+.q-menu .q-item--active,
+.q-menu .q-item.text-primary {
+  background: color-mix(in srgb, var(--brand-ink) 12%, transparent);
+}
+
+.q-tooltip {
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  box-shadow: var(--shadow-1);
+}
+.q-notification {
+  border-radius: 14px;
+  box-shadow: var(--shadow-2);
+}
+.q-banner {
+  border-radius: 12px;
+}
+.q-linear-progress {
+  border-radius: 999px;
+  overflow: hidden;
 }
 
 // Shared width tiers for card-based dialogs/forms, replacing one-off inline
@@ -33,4 +353,177 @@
 .q-dialog__inner--maximized > .dialog-card--sm,
 .q-dialog__inner--maximized > .dialog-card--md {
   max-width: none;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   App shell (MainLayout, `.app-shell`)
+   Full-height column: only the content scrolls, so the scrollbar sits under
+   the top bar rather than beside it. On desktop, bar / drawer / page become
+   three floating rounded panels on the background, 12px apart.
+   ════════════════════════════════════════════════════════════════════════ */
+html,
+body,
+#q-app {
+  height: 100%;
+}
+.app-shell {
+  height: 100svh;
+  min-height: 0 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  > .q-header {
+    position: static !important;
+    flex: 0 0 auto;
+  }
+  .q-page-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-top: 0 !important;
+    scroll-behavior: smooth;
+  }
+}
+
+.q-header {
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.04),
+    0 3px 10px rgba(16, 22, 26, 0.07);
+  transition: box-shadow var(--dur-medium) var(--ease-standard);
+}
+.q-header.is-scrolled {
+  box-shadow:
+    0 10px 28px rgba(16, 22, 26, 0.18),
+    0 2px 8px rgba(16, 22, 26, 0.1);
+}
+.q-drawer {
+  background: #fbfcfc;
+}
+.q-drawer--bordered {
+  border-right-color: var(--border-soft) !important;
+}
+
+/* Drawer navigation: pill items, inset from the drawer edges so they read as shapes. */
+.q-drawer .q-item.q-item--clickable {
+  margin: 2px 10px;
+  border-radius: 999px;
+}
+.q-drawer .q-item.q-item--clickable:not(.nav-active):hover {
+  background: color-mix(in srgb, var(--brand-ink) var(--state-hover), transparent);
+}
+.nav-active {
+  color: var(--brand-ink) !important;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--brand-ink) 14%, transparent);
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    padding: 12px;
+    gap: 12px;
+  }
+  /* The drawer container is a zero-height flex item between bar and page:
+     without this the gap counted twice. The drawer is `fixed` anyway. */
+  .app-shell > .q-drawer-container {
+    display: contents;
+  }
+  .app-shell .q-header {
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-2);
+  }
+  /* Quasar keeps its geometry: the drawer is declared 12px wider than it
+     paints, the spare 12px being the gap on its left. */
+  .app-shell .q-drawer {
+    width: calc(var(--q-drawer-width) - 12px) !important;
+    left: 12px;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-soft) !important;
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-1);
+    overflow: hidden;
+  }
+  /* The page card takes exactly the leftover height and scrolls inside, so
+     its four corners always show. */
+  .app-shell .q-page-container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .app-shell .q-page-container > .q-page {
+    flex: 1 1 auto;
+    min-height: 0 !important;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-1);
+  }
+}
+/* On small screens the drawer is an overlay: stuck to the left, rounded only
+   on the side that lands over the page. */
+@media (max-width: 1023.98px) {
+  .q-drawer {
+    border-radius: 0 18px 18px 0;
+    overflow: hidden;
+  }
+}
+
+/* Page transition (router-view in MainLayout). */
+.aed-page-enter-active {
+  transition:
+    opacity 160ms var(--ease-standard),
+    transform 160ms var(--ease-emphasized);
+}
+.aed-page-leave-active {
+  transition: opacity 90ms var(--ease-standard);
+}
+.aed-page-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.aed-page-leave-to {
+  opacity: 0;
+}
+
+/* Thin scrollbars in the brand ink. */
+.q-page-container,
+.q-page,
+.q-drawer__content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand-ink) transparent;
+}
+.q-page-container::-webkit-scrollbar,
+.q-page::-webkit-scrollbar,
+.q-drawer__content::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.q-page-container::-webkit-scrollbar-thumb,
+.q-page::-webkit-scrollbar-thumb,
+.q-drawer__content::-webkit-scrollbar-thumb {
+  background: var(--brand-ink);
+  border-radius: 999px;
+  border: 2px solid var(--surface);
+}
+
+/* ── Accessibility: visible keyboard focus, respect reduced motion ── */
+:focus-visible {
+  outline: 2px solid var(--brand-ink);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

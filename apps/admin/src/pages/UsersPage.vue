@@ -1,9 +1,9 @@
 <template>
-  <q-page class="bg-grey-1 q-pa-md">
+  <q-page class="q-pa-md">
     <div class="row items-center q-mb-md">
       <div>
-        <div class="text-h5 text-weight-bold">Users</div>
-        <div class="text-caption text-grey-7">
+        <div class="page-title">Users</div>
+        <div class="page-subtitle">
           Access is invite-only — new members activate through a link you send them.
         </div>
       </div>

@@ -1,9 +1,9 @@
 <template>
-  <q-page class="bg-grey-1 q-pa-md">
+  <q-page class="q-pa-md">
     <div class="row items-center q-mb-md">
       <div>
-        <div class="text-h5 text-weight-bold">Locations</div>
-        <div class="text-caption text-grey-7">Fleet readiness at a glance</div>
+        <div class="page-title">Locations</div>
+        <div class="page-subtitle">Fleet readiness at a glance</div>
       </div>
       <q-space />
       <q-btn color="primary" icon="add" label="New location" no-caps unelevated :to="{ name: 'location-new' }" />
@@ -55,7 +55,6 @@
             toggle-color="primary"
             color="white"
             text-color="grey-8"
-            class="shadow-1"
             padding="6px 12px"
             :options="segmentOptions"
           />

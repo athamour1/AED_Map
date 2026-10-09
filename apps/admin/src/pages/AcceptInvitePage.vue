@@ -1,5 +1,5 @@
 <template>
-  <q-page class="flex flex-center bg-blue-grey-1 q-pa-md">
+  <q-page class="flex flex-center q-pa-md">
     <q-card class="dialog-card--sm q-pa-md">
       <template v-if="!token">
         <q-card-section class="text-center">
