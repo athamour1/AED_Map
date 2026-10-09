@@ -15,6 +15,8 @@ release.sh  # Builds + pushes images, tags a GitHub release (see below)
 
 Package manager: [pnpm](https://pnpm.io) workspaces.
 
+Planned but not started features live in [ROADMAP.md](ROADMAP.md).
+
 ## Install dependencies
 
 ```bash
