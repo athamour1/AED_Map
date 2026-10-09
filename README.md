@@ -73,7 +73,7 @@ Internet ──443──▶ your reverse proxy (TLS) ──▶ 127.0.0.1:8080 ga
 |---|---|---|---|
 | `POSTGRES_PASSWORD` | yes | — | **Hex only** (`openssl rand -hex 24`): it is embedded in the database URL, where `/ + @ :` break it. Never change it after the first `up` — Postgres only reads it when the volume is created. |
 | `JWT_ACCESS_SECRET` | yes | — | Signs access tokens (`openssl rand -base64 48`). Rotating it only expires current access tokens; clients refresh silently. |
-| `APP_ORIGIN` | yes | — | Exact origin users open, e.g. `https://aed.example.gr` (no trailing slash). A mismatch makes login return 403. |
+| `APP_ORIGIN` | yes | — | The origin users open, e.g. `https://aed.example.gr`. Only scheme + host + port count (a trailing slash or path is ignored); a different domain or `http` vs `https` makes login return 403, and the api logs `Origin mismatch: expected …, got …`. |
 | `TAG` | no | `latest` | Image tag to run. Prefer a pinned release (`v1.0.1`) so you know what runs and can roll back. |
 | `POSTGRES_USER` / `POSTGRES_DB` | no | `aedmap` | |
 | `BIND_ADDR` | no | `127.0.0.1` | Host address the gateway listens on (see *Ports* below). |
