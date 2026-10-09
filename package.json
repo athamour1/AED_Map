@@ -1,6 +1,6 @@
 {
   "name": "aed-map",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "AED Map monorepo — public locator PWA, admin panel, and API",
   "type": "module",
