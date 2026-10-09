@@ -1,10 +1,29 @@
 <template>
-  <q-layout view="hHh Lpr lFf" class="app-shell">
+  <q-layout view="hHh Lpr lFf" class="app-shell" :style="{ '--q-drawer-width': `${drawerWidth}px` }">
     <q-header class="bg-primary text-white" :class="{ 'is-scrolled': scrolled }">
       <q-toolbar>
         <q-btn flat dense round icon="menu" class="q-mr-sm lt-md" @click="drawerOpen = !drawerOpen" />
         <q-icon name="favorite" size="28px" class="q-mr-sm" />
         <q-toolbar-title class="text-weight-bold">AED Map Admin</q-toolbar-title>
+
+        <q-btn flat dense round :icon="themeIcon" aria-label="Theme" class="q-mr-xs">
+          <q-tooltip>Theme</q-tooltip>
+          <q-menu anchor="bottom right" self="top right">
+            <q-list dense style="min-width: 160px">
+              <q-item
+                v-for="opt in themeOptions"
+                :key="opt.value"
+                clickable
+                v-close-popup
+                :active="themeMode === opt.value"
+                @click="setThemeMode(opt.value)"
+              >
+                <q-item-section avatar><q-icon :name="opt.icon" /></q-item-section>
+                <q-item-section>{{ opt.label }}</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
 
         <div class="row items-center q-gutter-sm" v-if="auth.user">
           <q-chip dense color="white" text-color="primary" class="text-weight-bold gt-xs">
@@ -25,7 +44,7 @@
 
     <!-- Declared 12px wider than it paints on desktop: the spare 12px is the
          gap on its left in the floating-panel layout (see app.scss). -->
-    <q-drawer v-model="drawerOpen" show-if-above bordered :width="$q.screen.lt.md ? 240 : 252">
+    <q-drawer v-model="drawerOpen" show-if-above bordered :width="drawerWidth">
       <q-list class="q-py-sm">
         <q-item
           clickable
@@ -65,15 +84,27 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'stores/auth'
+import { useTheme } from 'src/composables/useTheme'
 
 const $q = useQuasar()
 const auth = useAuthStore()
 const router = useRouter()
 const drawerOpen = ref(false)
+// Also exposed as --q-drawer-width: app.scss paints the floating drawer 12px
+// narrower than this and needs the declared width to do so.
+const drawerWidth = computed(() => ($q.screen.lt.md ? 240 : 252))
+
+const { mode: themeMode, setMode: setThemeMode } = useTheme()
+const themeOptions = [
+  { value: 'auto', label: 'System', icon: 'brightness_auto' },
+  { value: 'light', label: 'Light', icon: 'light_mode' },
+  { value: 'dark', label: 'Dark', icon: 'dark_mode' },
+]
+const themeIcon = computed(() => themeOptions.find((o) => o.value === themeMode.value).icon)
 
 // The bar deepens its shadow once content sits under it. What scrolls is the
 // page card on desktop and the page container on phones (app.scss), so listen

@@ -21,6 +21,8 @@
   --shadow-1: 0 1px 2px rgba(16, 22, 26, 0.04), 0 1px 3px rgba(16, 22, 26, 0.06);
   --shadow-2: 0 6px 16px rgba(16, 22, 26, 0.09), 0 2px 6px rgba(16, 22, 26, 0.05);
   --line: rgba(0, 0, 0, 0.12);
+  --drawer-bg: #fbfcfc;
+  --q-card-bg: #ffffff;
 
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-emphasized: cubic-bezier(0.3, 0, 0, 1);
@@ -399,7 +401,7 @@ body,
     0 2px 8px rgba(16, 22, 26, 0.1);
 }
 .q-drawer {
-  background: #fbfcfc;
+  background: var(--drawer-bg);
 }
 .q-drawer--bordered {
   border-right-color: var(--border-soft) !important;
@@ -510,6 +512,144 @@ body,
   background: var(--brand-ink);
   border-radius: 999px;
   border: 2px solid var(--surface);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Dark theme (Quasar Dark → `body.body--dark`, toggled from the header)
+   Quasar paints cards, tables, fields and lists itself. Here our own tokens
+   flip, plus the colour classes pages use with a light-background assumption
+   (grey text, pale tinted backgrounds, `bg-white` chips over the map).
+   Slate-tinted dark instead of neutral black: same temperature as light.
+   ════════════════════════════════════════════════════════════════════════ */
+body.body--dark {
+  /* The slate primary is too deep to read as ink on a dark surface. */
+  --brand-ink: #9db7c4;
+  --app-bg: #101416;
+  --surface: #182023;
+  --surface-2: #1e272b;
+  --drawer-bg: #141b1e;
+  --border-soft: #2a3539;
+  --muted: #a2b0b7;
+  --ink: #e6ecef;
+  --line: rgba(255, 255, 255, 0.14);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 6px 16px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
+  /* Quasar's dark surfaces follow the same palette. */
+  --q-dark-page: var(--app-bg);
+  --q-dark: var(--surface);
+  --q-card-bg: var(--surface);
+
+  background: var(--app-bg);
+  color: var(--ink);
+  transition: background-color var(--dur-medium) var(--ease-standard);
+
+  /* The bar keeps the brand slate, a touch deeper so it doesn't glow. */
+  .q-header.bg-primary {
+    background: #263238 !important;
+  }
+  .q-header,
+  .q-header.is-scrolled {
+    box-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.3),
+      0 3px 10px rgba(0, 0, 0, 0.45);
+  }
+
+  .q-dialog__backdrop {
+    background: rgba(0, 0, 0, 0.55);
+  }
+
+  /* Grey text "on white" → light grey on dark. */
+  .text-grey-5,
+  .text-grey-6,
+  .text-grey-7,
+  .text-grey-8 {
+    color: #a2b0b7 !important;
+  }
+  .text-grey-9,
+  .text-grey-10,
+  .text-dark {
+    color: #dfe6e9 !important;
+  }
+  /* Brand/semantic colours are deep for white backgrounds; as text on dark
+     they need a lighter shade (`bg-*` buttons stay as they are). */
+  .text-primary {
+    color: var(--brand-ink) !important;
+  }
+  .text-positive {
+    color: #81c784 !important;
+  }
+  .text-negative {
+    color: #ef5350 !important;
+  }
+  .text-warning {
+    color: #ffa726 !important;
+  }
+  .text-info {
+    color: #4fc3f7 !important;
+  }
+
+  /* Pale tints → translucent washes over the dark surface. */
+  .bg-white {
+    background: var(--surface) !important;
+  }
+  .bg-grey-1 {
+    background: rgba(255, 255, 255, 0.04) !important;
+  }
+  .bg-grey-2 {
+    background: rgba(255, 255, 255, 0.07) !important;
+  }
+  .bg-grey-3 {
+    background: rgba(255, 255, 255, 0.1) !important;
+  }
+  .bg-grey-4 {
+    background: rgba(255, 255, 255, 0.14) !important;
+  }
+  .bg-blue-grey-1 {
+    background: rgba(157, 183, 196, 0.12) !important;
+  }
+  .bg-red-1 {
+    background: rgba(239, 83, 80, 0.16) !important;
+  }
+  .bg-orange-1 {
+    background: rgba(255, 167, 38, 0.16) !important;
+  }
+  .bg-blue-1 {
+    background: rgba(66, 165, 245, 0.16) !important;
+  }
+  .bg-green-1 {
+    background: rgba(102, 187, 106, 0.16) !important;
+  }
+
+  /* A white "Use my location" button over the map: keep it a light chip
+     only in light mode; here it becomes a dark surface with brand ink. */
+  .q-btn.bg-white {
+    color: var(--brand-ink) !important;
+  }
+
+  /* OpenStreetMap tiles have no dark style: invert + rotate hue so land and
+     water stay recognisable, then soften. Markers and popups are untouched. */
+  .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.6);
+  }
+  .leaflet-container {
+    background: #0e1316;
+  }
+  .leaflet-bar a,
+  .leaflet-control-attribution {
+    background: var(--surface) !important;
+    color: var(--ink) !important;
+    border-color: var(--border-soft) !important;
+  }
+  .leaflet-control-attribution a {
+    color: var(--brand-ink) !important;
+  }
+
+  /* Filled primary buttons/toggles: one step lighter slate so they read as
+     controls on the dark surface instead of sinking into it. */
+  .q-btn.bg-primary,
+  .q-btn-toggle .q-btn[aria-pressed='true'].bg-primary {
+    background: #4f6773 !important;
+  }
 }
 
 /* ── Accessibility: visible keyboard focus, respect reduced motion ── */

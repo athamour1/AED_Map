@@ -5,7 +5,7 @@ import { defineConfig } from '#q-app/wrappers'
 
 export default defineConfig((/* ctx */) => {
   return {
-    boot: ['fonts', 'pinia', 'axios'],
+    boot: ['fonts', 'theme', 'pinia', 'axios'],
 
     css: ['app.scss'],
 
