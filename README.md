@@ -10,7 +10,7 @@ apps/
 packages/
   shared/   # Pure logic shared between apps/public and apps/admin
 infra/      # Self-hosted deployment (Docker Compose + nginx)
-scripts/    # On-demand ops scripts (no CI/CD automation in this repo — see below)
+release.sh  # Builds + pushes images, tags a GitHub release (see below)
 ```
 
 Package manager: [pnpm](https://pnpm.io) workspaces.
@@ -36,8 +36,31 @@ Across every workspace package: `pnpm -r <script>` (e.g. `pnpm -r lint`, `pnpm -
 
 ## Deploying
 
-There is no GitHub Actions CI/CD in this repo — everything is run on demand, locally:
+There is no GitHub Actions CI/CD in this repo — everything is run on demand, locally.
 
-- **API image**: `./scripts/push-api-image.sh` builds `apps/api/Dockerfile` and pushes it to GHCR, using your local `docker`/`gh` CLI auth. Run it whenever you want to publish a new image, not automatically on push.
-- **Self-hosted stack**: see [infra/docker-compose.yml](infra/docker-compose.yml) and [infra/nginx.conf](infra/nginx.conf) — a gateway nginx serves plain HTTP on `:8080` and reverse-proxies `/`, `/admin/`, `/api/` to the `public`/`admin`/`api` containers, each of which builds and serves its own content (`apps/public`/`apps/admin` each bundle nginx as the last Docker layer). Put your own reverse proxy in front of it for TLS/the real domain.
-- **Frontends** (`apps/public`, `apps/admin`): built and served automatically as part of `docker compose up -d --build` — no separate deploy step.
+### Release
+
+```bash
+./release.sh
+```
+
+Asks for a version, bumps every `package.json`, commits, builds and pushes the
+`api`, `public`, `admin` and `gateway` images to `ghcr.io/athamour1/aed-map/*`
+(tagged `vX.Y.Z` and `latest`), then pushes a git tag and creates a GitHub
+release. Needs `docker` and an authenticated `gh` CLI, and a clean working tree.
+
+### Production
+
+[infra/docker-compose.prod.yml](infra/docker-compose.prod.yml) runs the
+released images — no build, no repo clone on the server. Copy it and
+[infra/.env.prod.example](infra/.env.prod.example) (as `.env.prod`) to the
+server; the file header has the first-run steps (seed + first admin). The
+gateway listens on plain HTTP (`127.0.0.1:8080` by default) — put your own
+reverse proxy in front for TLS and the real domain.
+
+### Local stack
+
+[infra/docker-compose.yml](infra/docker-compose.yml) builds everything from
+source (`docker compose up -d --build`) with the same layout: a gateway nginx
+([infra/nginx.conf](infra/nginx.conf)) on `:8080` path-routes `/`, `/admin/`,
+`/api/` to the `public`/`admin`/`api` containers.

@@ -1,0 +1,153 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AED Map — Production Docker Compose
+#
+# Uses pre-built images published to GitHub Container Registry by release.sh:
+#   ghcr.io/athamour1/aed-map/{api,public,admin,gateway}  (:latest or :vX.Y.Z)
+# Nothing is built on the server and no clone of the repo is needed — copy
+# just this file and .env.prod.example.
+#
+# Services:
+#   postgres — PostgreSQL 16 (named volume, no host port)
+#   migrate  — one-shot `prisma migrate deploy`; the api waits for it
+#   seed     — one-shot import of the original AED locations (profile `seed`)
+#   api      — NestJS
+#   public   — public map PWA (nginx serving its own build)
+#   admin    — admin SPA      (nginx serving its own build)
+#   gateway  — plain-HTTP nginx path router: / → public, /admin/ → admin,
+#              /api/ → api. The ONLY published port.
+#
+# No TLS here — put your own reverse proxy (Caddy/nginx/Traefik) in front for
+# the real domain. The gateway binds to BIND_ADDR (default 127.0.0.1), so only
+# that local proxy can reach it, never the internet directly.
+#
+# First run:
+#   cp .env.prod.example .env.prod      # fill in the secrets
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod pull
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+#   # once, on a fresh database — import the original locations:
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod --profile seed run --rm seed
+#   # once — create the first admin account:
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod exec \
+#     -e ADMIN_BOOTSTRAP_EMAIL=you@example.com -e ADMIN_BOOTSTRAP_PASSWORD='...' \
+#     api node dist/cli/create-admin.js
+#
+# Deploy a specific release:
+#   TAG=v1.2.0 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+#
+# Every secret is REQUIRED (`${VAR:?...}`): if one is missing compose refuses
+# to start instead of bringing the stack up with weak defaults.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: aed-map-prod
+
+# Log rotation — without it a json-file log grows without bound.
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: '10m'
+      max-file: '3'
+
+# Hardening for our own Node containers: no kernel capabilities, no privilege
+# gain through setuid binaries.
+x-hardened: &hardened
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-database-url: &database-url postgresql://${POSTGRES_USER:-aedmap}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-aedmap}?schema=public
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    <<: *logging
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aedmap}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-aedmap}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    # No host port — the database stays on the internal network.
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Brings the schema up to date on every deploy, then exits. The api does not
+  # start until it has finished successfully.
+  migrate:
+    image: ghcr.io/athamour1/aed-map/api:${TAG:-latest}
+    restart: 'no'
+    <<: [*logging, *hardened]
+    command: ['pnpm', 'run', 'db:migrate']
+    environment:
+      DATABASE_URL: *database-url
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # One-time import of the original aed-locations.json. Idempotent — skips if
+  # any location already exists — but gated behind a profile so a plain `up`
+  # never runs it.
+  seed:
+    image: ghcr.io/athamour1/aed-map/api:${TAG:-latest}
+    restart: 'no'
+    profiles: ['seed']
+    <<: [*logging, *hardened]
+    command: ['node', 'prisma/seed.js']
+    environment:
+      DATABASE_URL: *database-url
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    image: ghcr.io/athamour1/aed-map/api:${TAG:-latest}
+    restart: always
+    <<: [*logging, *hardened]
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: *database-url
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required (openssl rand -base64 48)}
+      # The real origin browsers use — enables the Origin/Referer check on
+      # /auth/login and /auth/refresh.
+      APP_ORIGIN: ${APP_ORIGIN:?APP_ORIGIN is required (e.g. https://aed.example.gr)}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    expose:
+      - '3000'
+
+  public:
+    image: ghcr.io/athamour1/aed-map/public:${TAG:-latest}
+    restart: always
+    <<: *logging
+    expose:
+      - '80'
+
+  admin:
+    image: ghcr.io/athamour1/aed-map/admin:${TAG:-latest}
+    restart: always
+    <<: *logging
+    expose:
+      - '80'
+
+  gateway:
+    image: ghcr.io/athamour1/aed-map/gateway:${TAG:-latest}
+    restart: always
+    <<: *logging
+    ports:
+      - '${BIND_ADDR:-127.0.0.1}:${HTTP_PORT:-8080}:80'
+    depends_on:
+      - api
+      - public
+      - admin
+
+volumes:
+  postgres-data:

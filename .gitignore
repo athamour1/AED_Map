@@ -16,3 +16,4 @@ node_modules/.modules.yaml
 .env
 .env.local*
 infra/.env
+.env.prod
