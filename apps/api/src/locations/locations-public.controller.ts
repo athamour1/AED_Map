@@ -13,6 +13,12 @@ const PUBLIC_LOCATION_SELECT = {
   isAvailable: true,
   is24h: true,
   schedule: true,
+  // Photos are public by design: they show where the AED hangs. Only the
+  // fields the map needs — files are fetched from /api/photos/:id/:variant.
+  photos: {
+    select: { id: true, caption: true, width: true, height: true },
+    orderBy: { sortOrder: 'asc' },
+  },
 } as const;
 
 @Controller('locations')
