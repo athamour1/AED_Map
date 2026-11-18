@@ -17,3 +17,6 @@ node_modules/.modules.yaml
 .env.local*
 infra/.env
 .env.prod
+
+# local photo uploads (apps/api in dev)
+uploads/

@@ -56,6 +56,8 @@ services:
       PORT: 3000
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       APP_ORIGIN: ${APP_ORIGIN}
+    volumes:
+      - uploads_data:/data/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -105,3 +107,4 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:

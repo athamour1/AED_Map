@@ -8,6 +8,7 @@
 #
 # Services:
 #   postgres — PostgreSQL 16 (named volume, no host port)
+#   (api also keeps uploaded location photos in the `uploads-data` volume)
 #   migrate  — one-shot `prisma migrate deploy`; the api waits for it
 #   seed     — one-shot import of the original AED locations (profile `seed`)
 #   api      — NestJS
@@ -116,6 +117,9 @@ services:
       # The real origin browsers use — enables the Origin/Referer check on
       # /auth/login and /auth/refresh.
       APP_ORIGIN: ${APP_ORIGIN:?APP_ORIGIN is required (e.g. https://aed.example.gr)}
+    volumes:
+      # Location photos (UPLOAD_DIR in the image). Back it up with the database.
+      - uploads-data:/data/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -156,3 +160,4 @@ services:
 
 volumes:
   postgres-data:
+  uploads-data:
