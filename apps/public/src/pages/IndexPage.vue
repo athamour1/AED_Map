@@ -155,6 +155,30 @@
           </div>
         </q-card-section>
 
+        <!-- Where exactly it hangs: the photos answer "which wall, which floor" -->
+        <q-card-section v-if="selectedAed.photos?.length" class="q-pt-sm q-pb-none">
+          <div class="row no-wrap q-gutter-x-sm" style="overflow-x: auto; scroll-snap-type: x mandatory">
+            <button
+              v-for="(photo, index) in selectedAed.photos"
+              :key="photo.id"
+              type="button"
+              class="aed-photo-thumb column no-wrap text-left"
+              :aria-label="photo.caption ? `Photo: ${photo.caption}` : `Photo ${index + 1} of the AED location`"
+              @click="openPhoto(index)"
+            >
+              <img
+                :src="photoUrl(photo.id, 'thumb')"
+                :alt="photo.caption || ''"
+                loading="lazy"
+                class="rounded-borders"
+              />
+              <span v-if="photo.caption" class="text-caption text-grey-8 ellipsis-2-lines q-mt-xs">
+                {{ photo.caption }}
+              </span>
+            </button>
+          </div>
+        </q-card-section>
+
         <q-card-section class="q-py-sm">
           <div v-if="selectedAed.is24h" class="row items-center bg-grey-2 rounded-borders q-pa-sm">
             <q-icon name="schedule" size="18px" color="grey-7" class="q-mr-sm" />
@@ -213,6 +237,40 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+    <!-- Full-screen photo viewer, swipe between photos -->
+    <q-dialog v-model="photoViewerOpen" maximized transition-show="fade" transition-hide="fade">
+      <div v-if="selectedAed?.photos?.length" class="column bg-black full-height">
+        <div class="row items-center no-wrap q-pa-sm text-white">
+          <div class="col text-subtitle2 ellipsis q-pl-sm">{{ selectedAed.name }}</div>
+          <q-btn icon="close" flat round color="white" aria-label="Close photos" v-close-popup />
+        </div>
+        <q-carousel
+          v-model="photoSlide"
+          swipeable
+          animated
+          :arrows="$q.screen.gt.xs && selectedAed.photos.length > 1"
+          :navigation="selectedAed.photos.length > 1"
+          control-color="white"
+          class="col bg-black"
+        >
+          <q-carousel-slide
+            v-for="(photo, index) in selectedAed.photos"
+            :key="photo.id"
+            :name="index"
+            class="column no-wrap flex-center q-pa-none"
+          >
+            <img
+              :src="photoUrl(photo.id, 'full')"
+              :alt="photo.caption || ''"
+              style="max-width: 100%; max-height: calc(100% - 64px); object-fit: contain"
+            />
+            <div v-if="photo.caption" class="text-body1 text-white text-center q-pa-md">
+              {{ photo.caption }}
+            </div>
+          </q-carousel-slide>
+        </q-carousel>
+      </div>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -232,6 +290,17 @@ const locating = ref(false);
 const isDialogOpen = ref(false);
 const selectedAed = ref(null);
 const aedLocations = ref([]);
+const photoViewerOpen = ref(false);
+const photoSlide = ref(0);
+
+function photoUrl(id, variant) {
+  return `/api/photos/${id}/${variant}`;
+}
+
+function openPhoto(index) {
+  photoSlide.value = index;
+  photoViewerOpen.value = true;
+}
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const currentDayIndex = new Date().getDay();
@@ -437,3 +506,26 @@ const openNavigation = () => {
   }
 };
 </script>
+
+<style scoped>
+.aed-photo-thumb {
+  flex: 0 0 auto;
+  width: 132px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  scroll-snap-align: start;
+}
+.aed-photo-thumb img {
+  width: 132px;
+  height: 99px;
+  object-fit: cover;
+  display: block;
+  background: #eee;
+}
+.aed-photo-thumb:focus-visible {
+  outline: 2px solid var(--q-primary);
+  outline-offset: 2px;
+}
+</style>

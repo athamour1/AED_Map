@@ -226,12 +226,14 @@
               </q-card>
             </div>
           </div>
+
+          <LocationPhotos v-model:photos="photos" :location-id="props.id" class="q-mt-lg" />
         </template>
 
         <q-card v-else flat bordered>
           <q-card-section class="row items-center text-grey-7">
             <q-icon name="info" color="primary" size="20px" class="q-mr-sm" />
-            <span class="text-body2">Save this location first to start adding its devices.</span>
+            <span class="text-body2">Save this location first to start adding its devices and photos.</span>
           </q-card-section>
         </q-card>
       </div>
@@ -267,6 +269,7 @@ L.Icon.Default.mergeOptions({
 import { api } from 'boot/axios'
 import ExpiryBadge from 'components/ExpiryBadge.vue'
 import DeviceDialog from 'components/DeviceDialog.vue'
+import LocationPhotos from 'components/LocationPhotos.vue'
 
 const props = defineProps({
   id: { type: String, default: null },
@@ -297,6 +300,7 @@ const scheduleDays = ref(
 )
 
 const devices = ref([])
+const photos = ref([])
 
 let map = null
 let marker = null
@@ -385,6 +389,7 @@ async function fetchLocation() {
   }
   applySchedule(data.schedule)
   devices.value = data.devices
+  photos.value = data.photos ?? []
 }
 
 onMounted(async () => {
@@ -433,7 +438,7 @@ async function handleSave() {
 function confirmDeleteLocation() {
   $q.dialog({
     title: 'Delete this location?',
-    message: `This will permanently delete "${form.value.name}" and its ${devices.value.length} device(s).`,
+    message: `This will permanently delete "${form.value.name}" with its ${devices.value.length} device(s) and ${photos.value.length} photo(s).`,
     cancel: true,
     persistent: true,
     ok: { label: 'Delete', color: 'negative', unelevated: true },

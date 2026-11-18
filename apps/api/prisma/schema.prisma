@@ -25,6 +25,7 @@ model Location {
   /// Weekday-keyed opening hours, e.g. {"1": [{"open":"08:00","close":"14:00"}]}
   schedule    Json?
   devices     Device[]
+  photos      LocationPhoto[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -45,6 +46,21 @@ model Device {
   notes                 String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+}
+
+/// Public data — a photo showing the AED at its location, so people can find it.
+/// Files live on disk under UPLOAD_DIR (`<id>.webp` and `<id>.thumb.webp`), not in the database.
+model LocationPhoto {
+  id         String   @id @default(uuid())
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId String
+  caption    String?
+  width      Int
+  height     Int
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([locationId, sortOrder])
 }
 
 model User {

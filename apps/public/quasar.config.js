@@ -185,6 +185,19 @@ export default defineConfig((/* ctx */) => {
             },
           },
           {
+            // AED photos never change under the same URL (a new photo is a new
+            // id), so once seen they can be shown offline too.
+            urlPattern: /\/api\/photos\/[0-9a-f-]+\/(thumb|full)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'aed-photos',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 90 * 24 * 60 * 60, // 90 days
+              },
+            },
+          },
+          {
             // Serve the last-known locations list if the API is briefly unreachable.
             urlPattern: /\/api\/locations$/,
             handler: 'NetworkFirst',

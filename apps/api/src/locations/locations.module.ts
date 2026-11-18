@@ -3,9 +3,10 @@ import { LocationsPublicController } from './locations-public.controller';
 import { LocationsAdminController } from './locations-admin.controller';
 import { LocationsAdminService } from './locations-admin.service';
 import { DevicesModule } from '../devices/devices.module';
+import { PhotosModule } from '../photos/photos.module';
 
 @Module({
-  imports: [DevicesModule],
+  imports: [DevicesModule, PhotosModule],
   controllers: [LocationsPublicController, LocationsAdminController],
   providers: [LocationsAdminService],
 })

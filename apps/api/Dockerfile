@@ -35,6 +35,11 @@ RUN pnpm --filter aed-map-api exec prisma generate
 COPY --from=build /repo/apps/api/dist apps/api/dist
 COPY --from=build /repo/apps/api/prisma-build/seed.js apps/api/prisma/seed.js
 
+# Location photos. A named volume is mounted here in compose; creating the
+# directory in the image makes a fresh volume start out owned correctly.
+ENV UPLOAD_DIR=/data/uploads
+RUN mkdir -p /data/uploads
+
 WORKDIR /repo/apps/api
 EXPOSE 3000
 CMD ["node", "dist/main"]
