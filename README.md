@@ -164,8 +164,36 @@ dc pull && dc up -d                   # new migrations apply before the api rest
 
 Roll back by setting the previous `TAG` and running the same two commands
 (migrations are forward-only — a rollback across a schema change needs a
-database restore). Back up the `postgres-data` volume, e.g.
-`dc exec -T postgres pg_dump -U aedmap aedmap > backup.sql`.
+database restore).
+
+#### Backups
+
+Two volumes hold data: `postgres-data` (everything but photos) and
+`uploads-data` (location photos, as `<id>.webp` + `<id>.thumb.webp`). Back up
+both, at the same time:
+
+```bash
+dc exec -T postgres pg_dump -U aedmap aedmap > backup.sql
+dc exec -T api tar -C /data/uploads -cf - . > uploads.tar
+```
+
+Restore photos with `dc exec -T api tar -C /data/uploads -xf - < uploads.tar`.
+
+### Location photos
+
+Editors add photos of the AED at each location from the location's page in
+the admin panel (the phone camera works directly). They are public: the map
+shows them in the AED's sheet so people can see exactly where it hangs.
+
+- Every upload is decoded and re-encoded to WebP (max 1600 px, plus a 480 px
+  thumbnail) — the original file is never stored, and **EXIF metadata,
+  including GPS position, is removed**.
+- Limits: 15 MB per file, 10 photos per location. JPEG, PNG, WebP, GIF, TIFF
+  and AVIF are accepted; iPhones send HEIC as JPEG to the browser.
+- Files live in `UPLOAD_DIR` (`/data/uploads` in the image, the
+  `uploads-data` volume in compose; `apps/api/uploads/` in local dev). Rows
+  are in the `LocationPhoto` table; deleting a location deletes its photos.
+- Served at `/api/photos/<id>/{full,thumb}` with a one-year immutable cache.
 
 ### Local stack
 
