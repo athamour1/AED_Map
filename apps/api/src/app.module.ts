@@ -7,6 +7,7 @@ import { LocationsModule } from './locations/locations.module';
 import { DevicesModule } from './devices/devices.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { PhotosModule } from './photos/photos.module';
 import { validateEnv } from './config/env.validation';
 
 @Module({
@@ -17,6 +18,7 @@ import { validateEnv } from './config/env.validation';
     DevicesModule,
     AuthModule,
     UsersModule,
+    PhotosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
